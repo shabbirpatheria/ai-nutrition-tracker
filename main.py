@@ -2,7 +2,8 @@ from dotenv import load_dotenv
 import os
 from langchain_openai import AzureChatOpenAI
 
-import getpass
+import yaml
+from jinja2 import Environment, FileSystemLoader
 import os
 
 load_dotenv(override=True)
@@ -16,6 +17,8 @@ if "AZURE_OPENAI_DEPLOYMENT_NAME" not in os.environ:
 if "AZURE_OPENAI_API_VERSION" not in os.environ:
     print("Please set the AZURE_OPENAI_API_VERSION environment variable.")
 
+
+
 llm = AzureChatOpenAI(
     azure_deployment=os.environ["AZURE_OPENAI_DEPLOYMENT_NAME"],
     api_version=os.environ["AZURE_OPENAI_API_VERSION"],
@@ -25,13 +28,17 @@ llm = AzureChatOpenAI(
     max_retries=2
 )
 
-messages = [
-    (
-        "system",
-        "You are a helpful assistant that translates English to French. Translate the user sentence.",
-    ),
-    ("human", "I love programming."),
-]
-ai_msg = llm.invoke(messages)
-print(ai_msg.content)
+def create_prompt_from_template():
+    with open("macros.yml") as f:
+        vars = yaml.safe_load(f,)
 
+        env = Environment(loader=FileSystemLoader("."))
+        template = env.get_template("prompt_template.md")
+
+        # Render and save
+        output = template.render(vars)
+        with open("prompt.md", "w") as f:
+            f.write(output)
+
+if __name__ == "__main__":
+    create_prompt_from_template()
